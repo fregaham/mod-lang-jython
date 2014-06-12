@@ -22,7 +22,7 @@ import org.vertx.java.core.json.JsonArray
 import org.vertx.java.platform.impl.JythonVerticleFactory
 
 from core.handlers import AsyncHandler
-from core.javautils import map_from_java, map_to_java
+from core.javautils import map_from_java, map_to_java, map_from_vertx
 from core.event_bus import EventBus
 
 __author__ = "Scott Horn"
@@ -100,11 +100,8 @@ class SockJSSocket(core.streams.ReadStream, core.streams.WriteStream):
         def simple_handler(msg):
             self.write(msg.body)
 
-        self.handler_id = EventBus.register_simple_handler(True, simple_handler)
-
     def close(self):
         """Close the socket"""
-        EventBus.unregister_handler(self.handler_id)
         self.java_obj.close()
 
     def handler_id(self):
@@ -113,7 +110,7 @@ class SockJSSocket(core.streams.ReadStream, core.streams.WriteStream):
         Given this ID, a different event loop can send a buffer to that event handler using the event bus. This
         allows you to write data to other SockJSSockets which are owned by different event loops.
         """
-        return self.handler_id
+        return self.java_obj.writeHandlerID()
         
     @property
     def remote_address(self):
@@ -198,7 +195,7 @@ class _EventBusBridgeHook(org.vertx.java.core.sockjs.EventBusBridgeHook):
 
     def handleSendOrPub(self, j_sock, send, message, address):
         if self._send_or_pub_handler is not None:
-            result = self._send_or_pub_handler(SockJSSocket(j_sock), send, map_from_java(message), address)
+            result = self._send_or_pub_handler(SockJSSocket(j_sock), send, map_from_vertx(message), address)
             return result if result is not None else True
         return True
 
